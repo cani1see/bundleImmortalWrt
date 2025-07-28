@@ -4,7 +4,7 @@
 # istore商店
 CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-store"
 # 首页和网络向导
-CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-i18n-quickstart-zh-cn"
+# CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-i18n-quickstart-zh-cn"
 # 去广告adghome
 CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-adguardhome"
 # 代理相关
@@ -15,8 +15,8 @@ CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-i18n-nikki-zh-cn"
 CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-tailscale"
 CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-i18n-tailscale-zh-cn"
 # 分区扩容 by sirpdboy 
-CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-partexp"
-CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-i18n-partexp-zh-cn"
+# CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-partexp"
+# CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-i18n-partexp-zh-cn"
 # 酷猫主题 by sirpdboy 
 #CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-theme-kucat"
 # 进阶设置 by sirpdboy 
@@ -37,5 +37,5 @@ CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-turboacc"
 CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-appfilter"
 CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-i18n-appfilter-zh-cn"
 # 设置向导 by sirpdboy
-CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-netwizard"
-CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-i18n-netwizard-zh-cn"
+#CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-netwizard"
+#CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-i18n-netwizard-zh-cn"
