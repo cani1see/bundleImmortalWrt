@@ -13,8 +13,10 @@
 > 6、新增用户预设置pppoe拨号功能<br>
 > 7、新增树莓派①②③④⑤<br>
 > 8、新增第三方软件包的集成功能 https://github.com/wukongdaily/AutoBuildImmortalWrt/discussions/209 <br>
-> 9、MT2500 和 MT6000 支持第三方插件的按需集成
+> 9、MT2500 和 MT6000 支持第三方插件的按需集成<br>
 > 10、新增:斐讯N1 的工作流<br>
+> 11、新增:Radxa [- e25 - e52c](https://github.com/wukongdaily/AutoBuildImmortalWrt/commit/34be59934a0d6d2e272ef561b7bfd07ddc7f180f) 等机型  <br>
+
 
 
 ## 如何查询imm仓库内有哪些插件
