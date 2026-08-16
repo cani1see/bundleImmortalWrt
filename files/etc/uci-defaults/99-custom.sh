@@ -3,11 +3,9 @@
 # Log file for debugging
 LOGFILE="/etc/config/uci-defaults-log.txt"
 echo "Starting 99-custom.sh at $(date)" >>$LOGFILE
-# 设置默认防火墙规则，方便单网口虚拟机首次访问 WebUI 
-# 因为本项目中 单网口模式是dhcp模式 直接就能上网并且访问web界面 避免新手每次都要修改/etc/config/network中的静态ip
-# 当你刷机运行后 都调整好了 你完全可以在web页面自行关闭 wan口防火墙的入站数据
-# 具体操作方法：网络——防火墙 在wan的入站数据 下拉选项里选择 拒绝 保存并应用即可。
-uci set firewall.@zone[1].input='ACCEPT'
+# WAN 默认拒绝入站。WebUI、ttyd 和 SSH 仅通过 LAN 访问。
+uci set firewall.@zone[1].input='REJECT'
+uci commit firewall
 
 # 设置主机名映射，解决安卓原生 TV 无法联网的问题
 uci add dhcp domain
@@ -169,6 +167,17 @@ elif [ "$count" -gt 1 ]; then
         uci set network.modem.ipaddr='192.168.1.2'
         uci set network.modem.netmask='255.255.255.0'
         uci set network.modem.delegate='0'
+
+        # Match the current LAN IPv6 setup. DSM disables SLAAC itself and uses
+        # stateful DHCPv6 to obtain its fixed ::155 host ID.
+        uci set network.lan.ip6assign='60'
+        uci set dhcp.lan.ra='server'
+        uci set dhcp.lan.dhcpv6='server'
+        uci set dhcp.lan.ra_slaac='1'
+        uci -q delete dhcp.lan.ra_flags
+        uci add_list dhcp.lan.ra_flags='managed-config'
+        uci add_list dhcp.lan.ra_flags='other-config'
+        uci commit dhcp
     fi
 
     uci commit network
@@ -177,9 +186,23 @@ fi
 # 设置所有网口可访问网页终端
 uci delete ttyd.@ttyd[0].interface
 
-# 设置所有网口可连接 SSH
-uci set dropbear.@dropbear[0].Interface=''
-uci commit
+# SSH 仅监听 LAN，并只允许密钥认证。
+uci set dropbear.@dropbear[0].Interface='lan'
+uci set dropbear.@dropbear[0].PasswordAuth='off'
+uci set dropbear.@dropbear[0].RootPasswordAuth='off'
+uci commit dropbear
+
+# The current PPPoE layout exposes delegated IPv6 through dynamic interface
+# wan_6. Monitor PD every minute without ever restarting the parent PPPoE WAN.
+if [ "$nic_layout" = "pve-current-router" ] \
+    && [ "${enable_pppoe:-no}" = "yes" ] \
+    && [ -x /usr/bin/ipv6-pd-watchdog.sh ]; then
+    mkdir -p /etc/crontabs
+    touch /etc/crontabs/root
+    pd_cron='* * * * * /usr/bin/ipv6-pd-watchdog.sh'
+    grep -qxF "$pd_cron" /etc/crontabs/root || printf '%s\n' "$pd_cron" >>/etc/crontabs/root
+    echo "Installed IPv6 PD watchdog cron for wan_6." >>"$LOGFILE"
+fi
 
 # 设置编译作者信息
 FILE_PATH="/etc/openwrt_release"
