@@ -57,6 +57,14 @@ PACKAGES="$PACKAGES luci-i18n-package-manager-zh-cn"
 PACKAGES="$PACKAGES luci-i18n-ttyd-zh-cn"
 PACKAGES="$PACKAGES openssh-sftp-server"
 
+# Current PVE router NICs:
+#   eth0/eth1: virtio_net (provided by the x86 kernel)
+#   eth2/eth3: Intel igb
+#   eth4/eth5: Realtek RTL8125 driven by the in-kernel r8169 driver
+# Keep these explicit so ImageBuilder package changes do not drop a required
+# passthrough NIC driver or the RTL8125 firmware.
+PACKAGES="$PACKAGES kmod-igb kmod-r8169 r8169-firmware"
+
 # 文件管理器
 PACKAGES="$PACKAGES luci-i18n-filemanager-zh-cn"
 # ======== shell/apk-custom-packages.sh =======

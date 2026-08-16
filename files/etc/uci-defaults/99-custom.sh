@@ -43,8 +43,37 @@ echo "Board detected: $board_name" >>$LOGFILE
 
 wan_ifname=""
 lan_ifnames=""
+nic_layout="default"
+
+get_net_driver() {
+    driver_path=$(readlink -f "/sys/class/net/$1/device/driver" 2>/dev/null)
+    if [ -n "$driver_path" ]; then
+        basename "$driver_path"
+    fi
+}
+
 # 此处特殊处理个别开发板网口顺序问题
 case "$board_name" in
+    "qemu-standard-pc-q35-ich9-2009")
+        # Current PVE router VM. Match the complete driver signature so other
+        # Q35 guests keep using the generic first-WAN mapping.
+        if [ "$count" -eq 6 ] \
+            && [ "$(get_net_driver eth0)" = "virtio_net" ] \
+            && [ "$(get_net_driver eth1)" = "virtio_net" ] \
+            && [ "$(get_net_driver eth2)" = "igb" ] \
+            && [ "$(get_net_driver eth3)" = "igb" ] \
+            && [ "$(get_net_driver eth4)" = "r8169" ] \
+            && [ "$(get_net_driver eth5)" = "r8169" ]; then
+            wan_ifname="eth5"
+            lan_ifnames="eth0 eth1 eth2 eth3 eth4"
+            nic_layout="pve-current-router"
+            echo "Using current PVE router mapping: WAN=$wan_ifname LAN=$lan_ifnames" >>"$LOGFILE"
+        else
+            wan_ifname=$(echo "$ifnames" | awk '{print $1}')
+            lan_ifnames=$(echo "$ifnames" | cut -d ' ' -f2-)
+            echo "Q35 NIC signature did not match; using default mapping: WAN=$wan_ifname LAN=$lan_ifnames" >>"$LOGFILE"
+        fi
+        ;;
     "radxa,e20c"|"friendlyarm,nanopi-r5c")
         wan_ifname="eth1"
         lan_ifnames="eth0"
@@ -118,10 +147,28 @@ elif [ "$count" -gt 1 ]; then
         uci set network.wan.password="$pppoe_password"
         uci set network.wan.peerdns='1'
         uci set network.wan.auto='1'
-        uci set network.wan6.proto='none'
+        if [ "$nic_layout" = "pve-current-router" ]; then
+            # Match the running 25.12 router: netifd creates dynamic wan_6 on
+            # top of pppoe-wan, instead of maintaining a separate wan6 section.
+            uci set network.wan.ipv6='auto'
+            uci set network.wan.norelease='1'
+            uci -q delete network.wan6
+        else
+            uci set network.wan6.proto='none'
+        fi
         echo "PPPoE config done." >>$LOGFILE
     else
         echo "PPPoE not enabled." >>$LOGFILE
+    fi
+
+    if [ "$nic_layout" = "pve-current-router" ]; then
+        # Reach the optical modem management UI while eth5 also carries PPPoE.
+        uci set network.modem=interface
+        uci set network.modem.proto='static'
+        uci set network.modem.device="$wan_ifname"
+        uci set network.modem.ipaddr='192.168.1.2'
+        uci set network.modem.netmask='255.255.255.0'
+        uci set network.modem.delegate='0'
     fi
 
     uci commit network
