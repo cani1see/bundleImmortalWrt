@@ -87,9 +87,11 @@ https://www.youtube.com/watch?v=7i6BQeitUtE
 - 上述特点 你都可以通过 `99-custom.sh` 配置和调整
 
 ## 特别说明
-本项目构建的固件默认将 WAN 入站设为 `REJECT`。WebUI、ttyd 和 SSH 仅应从 LAN 访问；需要公开的服务请使用明确的端口转发或 IPv6 防火墙规则。
+本项目构建的固件默认将 WAN 入站设为 `REJECT`。WebUI、ttyd 和 SSH 仅应从受信任网络访问；需要公开的服务请使用明确的端口转发或 IPv6 防火墙规则。
 
-SSH 默认只监听 LAN，并关闭密码认证。全新安装前请确保配置会保留 `/etc/dropbear/authorized_keys`，否则需先通过 LuCI/ttyd 添加 SSH 公钥。
+SSH 默认只监听 LAN，并关闭密码认证。当检测到当前 PVE 六网卡布局时，Dropbear 由防火墙限制访问范围，以允许 LAN 和 ZeroTier 连接；WAN 和光猫管理接口仍拒绝入站。全新安装前请确保配置会保留 `/etc/dropbear/authorized_keys`，否则需先通过 LuCI/ttyd 添加 SSH 公钥。
+
+当前 PVE 布局会加入 ZeroTier 网络 `88503383904801f4`，允许 ZeroTier 与 `br-lan` 双向转发，但不会将 ZeroTier 客户端私钥写入固件。全新安装会生成新节点，需要在 ZeroTier Central 授权，并添加受管路由 `192.168.3.0/24 via <路由器 ZeroTier IP>` 后才能访问 LAN 设备。
 
 相关首次启动设置位于 `files/etc/uci-defaults/99-custom.sh`。
 

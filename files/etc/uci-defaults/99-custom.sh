@@ -168,6 +168,41 @@ elif [ "$count" -gt 1 ]; then
         uci set network.modem.netmask='255.255.255.0'
         uci set network.modem.delegate='0'
 
+        # Allow LAN clients, including VPN clients routed through LAN, to
+        # reach the modem UI. Masquerading supplies the return path because
+        # the modem has no route back to the LAN subnet.
+        uci set firewall.modem=zone
+        uci set firewall.modem.name='modem'
+        uci set firewall.modem.network='modem'
+        uci set firewall.modem.input='REJECT'
+        uci set firewall.modem.output='ACCEPT'
+        uci set firewall.modem.forward='REJECT'
+        uci set firewall.modem.masq='1'
+        uci set firewall.lan_modem=forwarding
+        uci set firewall.lan_modem.src='lan'
+        uci set firewall.lan_modem.dest='modem'
+        uci commit firewall
+
+        # Join the current private ZeroTier network without baking a client
+        # identity into the image. A fresh install generates a new node that
+        # must be authorized in ZeroTier Central.
+        if command -v zerotier-one >/dev/null 2>&1; then
+            uci set zerotier.global=zerotier
+            uci set zerotier.global.enabled='1'
+            uci set zerotier.global.fw_allow_input='1'
+            uci set zerotier.earth=network
+            uci set zerotier.earth.enabled='1'
+            uci set zerotier.earth.id='88503383904801f4'
+            uci set zerotier.earth.allow_managed='1'
+            uci set zerotier.earth.fw_allow_input='1'
+            uci set zerotier.earth.fw_allow_forward='1'
+            uci -q delete zerotier.earth.fw_forward_ifaces
+            uci add_list zerotier.earth.fw_forward_ifaces='br-lan'
+            uci commit zerotier
+            /etc/init.d/zerotier enable
+            echo "Configured ZeroTier access to br-lan." >>"$LOGFILE"
+        fi
+
         # Match the current LAN IPv6 setup. DSM disables SLAAC itself and uses
         # stateful DHCPv6 to obtain its fixed ::155 host ID.
         uci set network.lan.ip6assign='60'
@@ -186,8 +221,15 @@ fi
 # 设置所有网口可访问网页终端
 uci delete ttyd.@ttyd[0].interface
 
-# SSH 仅监听 LAN，并只允许密钥认证。
-uci set dropbear.@dropbear[0].Interface='lan'
+# SSH uses key authentication only. The current PVE router listens on all
+# addresses so ZeroTier can reach it; WAN and modem input remain rejected by
+# firewall policy. Other layouts continue to bind Dropbear to LAN only.
+if [ "$nic_layout" = "pve-current-router" ] \
+    && command -v zerotier-one >/dev/null 2>&1; then
+    uci -q delete dropbear.@dropbear[0].Interface
+else
+    uci set dropbear.@dropbear[0].Interface='lan'
+fi
 uci set dropbear.@dropbear[0].PasswordAuth='off'
 uci set dropbear.@dropbear[0].RootPasswordAuth='off'
 uci commit dropbear
